@@ -1,43 +1,43 @@
 defmodule EliXero.Utils.Oauth do
-  def oauth_consumer_key do
-    Application.get_env(:elixero, :consumer_key)
+  def oauth_consumer_key(client) do
+    client.access_token["oauth_token"]
   end
 
-  def oauth_consumer_secret do
-    Application.get_env(:elixero, :consumer_secret)
+  def oauth_consumer_secret(client) do
+    client.consumer_secret
   end
 
-  def application_type do
-    Application.get_env(:elixero, :app_type)
+  def application_type(client) do
+    client.app_type
   end
 
-  def private_key do
-    Application.get_env(:elixero, :private_key_path)
+  def private_key(client) do
+    client.private_key_path
   end
 
-  def create_auth_header(method, url, additional_params, token) do
-    {base_string, oauth_params} = create_oauth_context(method, url, additional_params)
+  def create_auth_header(method, url, client, additional_params, token) do
+    {base_string, oauth_params} = create_oauth_context(method, url, client, additional_params)
 
-    signature = sign(base_string, token)
+    signature = sign(client, base_string, token)
 
     "OAuth oauth_signature=\"" <> signature <> "\", " <> EliXero.Utils.Helpers.join_params_keyword(oauth_params, :auth_header)
   end
 
-  def create_auth_header(method, url, additional_params) do
-    {base_string, oauth_params} = create_oauth_context(method, url, additional_params)
+  def create_auth_header(method, url, client, additional_params) do
+    {base_string, oauth_params} = create_oauth_context(method, url, client, additional_params)
 
-    signature = sign(base_string)
+    signature = sign(client, base_string)
 
     "OAuth oauth_signature=\"" <> signature <> "\", " <> EliXero.Utils.Helpers.join_params_keyword(oauth_params, :auth_header)
   end
 
-  defp create_oauth_context(method, url, additional_params) do
+  defp create_oauth_context(method, url, client, additional_params) do
     timestamp = :erlang.float_to_binary(Float.floor(:os.system_time(:milli_seconds) / 1000), [{:decimals, 0}])
 
     oauth_signing_params = [
-        oauth_consumer_key: oauth_consumer_key(),
+        oauth_consumer_key: oauth_consumer_key(client),
         oauth_nonce: EliXero.Utils.Helpers.random_string(10),
-        oauth_signature_method: signature_method(),
+        oauth_signature_method: signature_method(client),
         oauth_version: "1.0",
         oauth_timestamp: timestamp
       ]
@@ -67,26 +67,26 @@ defmodule EliXero.Utils.Oauth do
     {base_string, params}
   end
 
-  def sign(base_string) do
-    rsa_sha1_sign(base_string)
+  def sign(client, base_string) do
+    rsa_sha1_sign(client, base_string)
   end
 
-  def sign(base_string, token) do
-    hmac_sha1_sign(base_string, token)
+  def sign(client ,base_string, token) do
+    hmac_sha1_sign(client, base_string, token)
   end
 
-  defp signature_method() do
-    case(application_type()) do
+  defp signature_method(client) do
+    case(application_type(client)) do
       :private -> "RSA-SHA1"
       :public -> "HMAC-SHA1"
       :partner -> "RSA-SHA1"
     end
   end
 
-  defp rsa_sha1_sign(base_string) do
+  defp rsa_sha1_sign(client, base_string) do
     hashed = :crypto.hash(:sha, base_string)
 
-    {:ok, body} = File.read private_key()
+    {:ok, body} = File.read private_key(client)
 
     [decoded_key] = :public_key.pem_decode(body)
     key = :public_key.pem_entry_decode(decoded_key)
@@ -94,11 +94,11 @@ defmodule EliXero.Utils.Oauth do
     URI.encode(Base.encode64(signed), &URI.char_unreserved?(&1))
   end
 
-  defp hmac_sha1_sign(base_string, token) do
+  defp hmac_sha1_sign(client, base_string, token) do
     key =
       case(token) do
-        nil -> oauth_consumer_secret() <> "&"
-        _ -> oauth_consumer_secret() <> "&" <> token["oauth_token_secret"]
+        nil -> oauth_consumer_secret(client) <> "&"
+        _ -> oauth_consumer_secret(client) <> "&" <> token["oauth_token_secret"]
       end
     signed = :crypto.hmac(:sha, key, base_string)
     URI.encode(Base.encode64(signed), &URI.char_unreserved?(&1))

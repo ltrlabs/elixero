@@ -1,20 +1,20 @@
 defmodule EliXero.Private do
 
-  def find(access_token, resource, api_type) do
+  def find(client, resource, api_type) do
     url = EliXero.Utils.Urls.api(resource, api_type)
 
-    header = EliXero.Utils.Oauth.create_auth_header("GET", url, [oauth_token: access_token["oauth_token"]])
-    EliXero.Utils.Http.get(url, header)
+    header = EliXero.Utils.Oauth.create_auth_header("GET", url, client, [oauth_token: client.access_token["oauth_token"]])
+    EliXero.Utils.Http.get(url, client, header)
   end
 
-  def find(access_token, resource, api_type, query_filters, extra_headers) do
+  def find(client, resource, api_type, query_filters, extra_headers) do
     url = EliXero.Utils.Urls.api(resource, api_type) |> EliXero.Utils.Urls.append_query_filters(query_filters)
 
-    header = EliXero.Utils.Oauth.create_auth_header("GET", url, [oauth_token: access_token["oauth_token"]])
+    header = EliXero.Utils.Oauth.create_auth_header("GET", url, client, [oauth_token: client.access_token["oauth_token"]])
     EliXero.Utils.Http.get(url, header, extra_headers)
   end
 
-  def create(access_token, resource, api_type, data_map) do
+  def create(client, resource, api_type, data_map) do
     url = EliXero.Utils.Urls.api(resource, api_type)
 
     method =
@@ -22,10 +22,10 @@ defmodule EliXero.Private do
         :core -> "PUT"
       end
 
-    header = EliXero.Utils.Oauth.create_auth_header(method, url, [oauth_token: access_token["oauth_token"]])
+    header = EliXero.Utils.Oauth.create_auth_header(method, url, client, [oauth_token: client.access_token["oauth_token"]])
 
     case(method) do
-      "PUT" -> EliXero.Utils.Http.put(url, header, data_map)
+      "PUT" -> EliXero.Utils.Http.put(url, client, header, data_map)
     end
   end
 
