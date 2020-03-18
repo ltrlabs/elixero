@@ -2,12 +2,14 @@ defmodule EliXero.Mixfile do
   use Mix.Project
 
   def project do
-    [app: :elixero,
-     version: "0.1.1",
-     elixir: "~> 1.3",
-     description: description(),
-     package: package(),
-     deps: deps()]
+    [
+      app: :elixero,
+      version: "0.1.1",
+      elixir: "~> 1.3",
+      description: description(),
+      package: package(),
+      deps: deps()
+    ]
   end
 
   def application do
@@ -18,7 +20,7 @@ defmodule EliXero.Mixfile do
     [
       {:httpoison, "~> 0.9"},
       {:ex_doc, ">= 0.0.0", only: :dev},
-      {:poison, "~> 2.0", override: true},
+      {:poison, "~> 3.0"},
       {:ecto, "~> 2.1"}
     ]
   end
